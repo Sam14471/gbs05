@@ -8,32 +8,80 @@
 #include <asm/ldt.h>
 #include <linux/unistd.h>
 #include "list.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*Ausgabe der Threads*/
 void *Ausgabe(void *x)
 {
 	int fileDescriptor=0;
-	fileDescriptor=open(x+".txt");
+	char *filename =(char *)malloc(5*sizeof(char));
+	sprintf(filename,"%i.txt",(*(int *) x));
+	fileDescriptor=open(filename,0);
 	char *fileInput =(char *) malloc(64*sizeof(char));
 	char *prefix = (char *) malloc(9* sizeof(char));
 	int numberOfReads=0;
-	while(read(fileDescriptor,fileInput,64)==64){
-		sprintf(prefix,"[%02d] %03d\t", x, numberOfReads);
-		write(stdout,prefix,9);
-		write(stdout,fileInput,64);
-		write(stdout,"\n",1);
+	int readLength=64;
+	while(readLength==64){
+		readLength=read(fileDescriptor,fileInput,64);
+		sprintf(prefix,"[%02d] %03d\t",(*(int *) x), numberOfReads);
+		write(1,prefix,9);
+		write(1,fileInput,readLength);
+		write(1,"\n",1);
+		numberOfReads++;
+
+	}
+close(fileDescriptor);
+
+	free(filename);
+	free(fileInput);
+	free(prefix);
+	return NULL;
+}
+
+void *AusgabeZusammen(void *x)
+{
+	int fileDescriptor=0;
+	char *filename =(char *)malloc(5*sizeof(char));
+	sprintf(filename,"%i.txt",(*(int *) x));
+	fileDescriptor=open(filename,0);
+	char *fileInput =(char *) malloc(64*sizeof(char));
+	char *prefix = (char *) malloc(9* sizeof(char));
+	int numberOfReads=0;
+	int readLength=64;
+	while(readLength==64){
+		readLength=read(fileDescriptor,fileInput,64);
+		sprintf(prefix,"[%02d] %03d\t%s",(*(int *) x), numberOfReads,fileInput);
+		sprintf(prefix,"%s\n",prefix);
+		write(1,prefix,10+readLength);
+		numberOfReads++;
+
+	}
+	return NULL;
+}
+
+void *AusgabeMutex(void *x)
+{
+	int fileDescriptor=0;
+	char *filename =(char *)malloc(5*sizeof(char));
+	sprintf(filename,"%i.txt",(*(int *) x));
+	fileDescriptor=open(filename,0);
+	char *fileInput =(char *) malloc(64*sizeof(char));
+	char *prefix = (char *) malloc(9* sizeof(char));
+	int numberOfReads=0;
+	int readLength=64;
+	pthread_mutex_lock(&mutex);
+	while(readLength==64){
+		readLength=read(fileDescriptor,fileInput,64);
+		sprintf(prefix,"[%02d] %03d\t%s",(*(int *) x), numberOfReads,fileInput);
+		sprintf(prefix,"%s\n",prefix);
+		write(1,prefix,10+readLength);
 		numberOfReads++;
 	}
-	sprintf(prefix,"[%02d] %03d\t", x, numberOfReads);
-	write(stdout,prefix,9);
-	write(stdout,fileInput,64);
-	write(stdout,"\n",1);
-
-	/*for(int i=1;i<=*(int*)x;i++)
-	{
-		printf("%10u\t%d\t%i\n", (unsigned int) pthread_self(), getpid(), i);
-		sleep(1);
-	}*/
+	pthread_mutex_unlock(&mutex);
 	return NULL;
 }
 
@@ -43,9 +91,13 @@ int main(int argc, char **argv)
 	//int k = 10;
 	int n = 1;
 	//int r  = 0;
+	int l = 0;
+	int f = 0;
 
 	//char *kp = "k";
 	char *np = "n";
+	char *lp = "l";
+	char *fp = "f";
 	//char *rp = "r";
 
 	/*Übergabewerte übernehmen*/
@@ -53,44 +105,50 @@ int main(int argc, char **argv)
 	{
 		//if(*(argv[j]+1) == *kp){k = atoi(argv[j+1]);}
 		if(*(argv[j]+1) == *np){n = atoi(argv[j+1]);}
+		if(*(argv[j]+1) == *lp){l=1;}
+		if(*(argv[j]+1) == *fp){f=1;}
 		//if(*(argv[j]+1) == *rp){r = 1;}
 	}
-
-	/*Zeit ausgeben*/
-	time_t *timep = (time_t *) malloc(sizeof(time_t));
-	*timep = time(NULL);
-	printf("Start: %s", ctime(timep));
-	free(timep);
-
 	/*Threadwerte für -r festlegen*/
-	//if(r==1)k = ((random()%(k+1))+(int)k/2);
 
 	/*Thread erstellen*/
 	//pthread_t threads[n];
 	list_t *threadl = (list_t *) malloc(sizeof(list_t));
 	threadl = list_init();
 	pthread_t *thread = (pthread_t *) malloc(sizeof(pthread_t));
-	if()
+	int valuePointer[]={0,1,2,3,4,5,6,7,8,9};
+	if(l==1){
+
 	for(int i = 0; i<n; i++)
 	{
-		pthread_create(thread, NULL, Ausgabe, &i);
+		pthread_create(thread, NULL, AusgabeZusammen, valuePointer+i);
 		list_insert(threadl, thread, 0, 0, 0, 0);
 	}
-
+	}
+	else if(f==1){
+	for(int i = 0; i<n; i++)
+	{
+		pthread_create(thread, NULL, AusgabeMutex, valuePointer+i);
+		list_insert(threadl, thread, 0, 0, 0, 0);
+	}
+	}
+	else{
+	for(int i = 0; i<n; i++)
+	{
+		pthread_create(thread, NULL, Ausgabe, valuePointer+i);
+		list_insert(threadl, thread, 0, 0, 0, 0);
+	}
+	}
 	/*Auf Threads warten*/
 	for(int i = 0; i<n; i++)
 	{
-		//pthread_join(threads[i], NULL);
+
 		pthread_t current = *threadl->first->thread;
 		pthread_join(current,NULL);
 		list_remove(threadl, threadl->first);
 	}
 
-	/*Zeit ausgeben*/
-	time_t *timep2 = (time_t *) malloc(sizeof(time_t));
-	*timep2 = time(NULL);
-	printf("Ende: %s", ctime(timep2));
-	free(timep2);
+
 
 	free(thread);
 	free(threadl);

@@ -12,28 +12,49 @@ list_t *list_init () {
     }
 }
 
-struct list_elem *list_insert (list_t *list, pthread_t *thread) {
+struct list_elem *list_insert (list_t *list, pthread_t *thread, int number, int prio, int start, int lauf) {
 
     struct list_elem *newElement = (struct list_elem *) malloc(sizeof( struct list_elem));
     if (newElement != NULL) {
         newElement->thread = thread;
         newElement->next = list->first;
+        newElement->number = number;
+        newElement->prio = prio;
+        newElement->start = start;
+        newElement->lauf = lauf;
+        newElement->done = 0;
 
         if(list->last==NULL){
-	  list->last=newElement;
-	}
+	        list->last=newElement;
+	    }
         list->first = newElement;
         return newElement;
-    } else {
+    } 
+    else {
         return NULL;//Fehlerbehandlung???
     }
 }
 
-struct list_elem *list_append (list_t *list, pthread_t *thread) {
+void list_add (list_t *list, struct list_elem *elem) {
+    elem->next = list->first;
+    if(list->last==NULL){
+	    list->last=elem;
+	}
+    list->first = elem;
+    return;
+}
+
+struct list_elem *list_append (list_t *list, pthread_t *thread, int number, int prio, int start, int lauf) {
 
     struct list_elem *newElement = (struct list_elem *) malloc(sizeof(struct list_elem));
     if (newElement != NULL) {
         newElement->thread = thread;
+        newElement->number = number;
+        newElement->prio = prio;
+        newElement->start = start;
+        newElement->lauf = lauf;
+        newElement->done = 0;
+
         if(list->last!=NULL){
            list->last->next = newElement;
         }
@@ -50,17 +71,13 @@ struct list_elem *list_append (list_t *list, pthread_t *thread) {
 
 int list_remove (list_t *list,struct list_elem *elem){
     if(list->first==elem){
-        struct list_elem *tmpElem=list->first;
         list->first=list->first->next;
-        free(tmpElem);
         return 0;
     }
     struct list_elem *currentElement=list->first;
     while(currentElement!=NULL){
         if(currentElement->next==elem){
-            struct list_elem *tmpElem=currentElement->next;
             currentElement->next=currentElement->next->next;
-            free(tmpElem);
             return 0;
         }
         else{
@@ -72,9 +89,7 @@ int list_remove (list_t *list,struct list_elem *elem){
 
 void list_finit(list_t *list){
     while(list->first!=NULL){
-        struct list_elem *tmpElem=list->first;
         list->first=list->first->next;
-        free(tmpElem);
     }
     free(list);
 }
@@ -108,6 +123,14 @@ void list_print (list_t *list, void (*print_elem) (pthread_t *)) {
 	printf("\n");
     }
 }
+
+int list_empty (list_t *list) {
+    if (list->first == NULL) {
+        return 1;
+    } 
+    return 0;
+}
+
 /*
 void print_string (char *data){
     printf(data);
