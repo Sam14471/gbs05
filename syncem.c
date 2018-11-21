@@ -148,8 +148,7 @@ int main(int argc, char **argv)
 		list_remove(threadl, threadl->first);
 	}
 
-
-
+	fflush(stdout);
 	free(thread);
 	free(threadl);
 	return 0;
