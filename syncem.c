@@ -53,12 +53,14 @@ void *AusgabeZusammen(void *x)
 	int numberOfReads=0;
 	int readLength=64;
 	while(readLength==64){
+	pthread_mutex_lock(&mutex);
 		readLength=read(fileDescriptor,fileInput,64);
-		sprintf(prefix,"[%02d] %03d\t%s",(*(int *) x), numberOfReads,fileInput);
-		sprintf(prefix,"%s\n",prefix);
-		write(1,prefix,10+readLength);
+		sprintf(prefix,"[%02d] %03d\t",(*(int *) x), numberOfReads);
+		write(1,prefix,9);
+		write(1,fileInput,readLength);
+		write(1,"\n",1);
 		numberOfReads++;
-
+	pthread_mutex_unlock(&mutex);
 	}
 	return NULL;
 }
@@ -76,9 +78,10 @@ void *AusgabeMutex(void *x)
 	pthread_mutex_lock(&mutex);
 	while(readLength==64){
 		readLength=read(fileDescriptor,fileInput,64);
-		sprintf(prefix,"[%02d] %03d\t%s",(*(int *) x), numberOfReads,fileInput);
-		sprintf(prefix,"%s\n",prefix);
-		write(1,prefix,10+readLength);
+		sprintf(prefix,"[%02d] %03d\t",(*(int *) x), numberOfReads);
+		write(1,prefix,9);
+		write(1,fileInput,readLength);
+		write(1,"\n",1);
 		numberOfReads++;
 	}
 	pthread_mutex_unlock(&mutex);
@@ -146,6 +149,7 @@ int main(int argc, char **argv)
 		pthread_t current = *threadl->first->thread;
 		pthread_join(current,NULL);
 		list_remove(threadl, threadl->first);
+		sleep(1);
 	}
 
 	fflush(stdout);
