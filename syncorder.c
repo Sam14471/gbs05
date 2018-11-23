@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 		list_insert(threadl, thread, 0, 0, 0, 0);
 	}
 	}
-	else if(o=1)
+	else if(o==1)
 	{
 	for(int i = 0; i<n; i++)
 	{
